@@ -12,5 +12,3 @@ Group:
 
 We must implement a solution to a synchronization problem utilizing semaphores
 and mutexes as synchronization primitives.
-
->>>>>>> dfe67cf (README: initial commit)
