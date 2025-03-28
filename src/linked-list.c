@@ -1,0 +1,93 @@
+#include "linked-list.h"
+#include "sync.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+llist *llist_new(void) {
+  llist *list = calloc(1, sizeof(*list));
+  pthread_mutex_init(&list->inserter, NULL);
+  pthread_mutex_init(&list->searcher_mutex, NULL);
+  sem_init(&list->no_searcher, 0, 1);
+  sem_init(&list->no_inserter, 0, 1);
+  list->searcher_count = 0;
+  list->head = NULL;
+
+  return list;
+}
+
+void llist_print(llist *list) {
+  size_t len = 128;
+  char *buffer = calloc(len, sizeof(*buffer));
+  int index = 0;
+
+  for (lnode *cur = list->head; cur != NULL; cur = cur->next) {
+    index +=
+        snprintf(&buffer[index], len - (size_t)index - 1, "%zu->", cur->value);
+
+    if (index < 0) {
+      fprintf(stderr, "Couldn't print list");
+      return;
+    }
+
+    if ((size_t)index > len) {
+      // TODO add some handling here
+      fprintf(stderr, "List too big to print");
+      return;
+    }
+  }
+
+  printf("%s\n", buffer);
+}
+
+void llist_push_back(llist *list, size_t value) {
+  lnode *new_node = lnode_new(value);
+
+  lnode **cur = &list->head;
+
+  while (*cur != NULL) {
+    // *cur = head
+    cur = &(*cur)->next;
+  }
+
+  // *cur = head->next
+  (*cur) = new_node;
+}
+
+int llist_delete(llist *list, size_t value) {
+  lnode **cur = &list->head;
+
+  while ((*cur) != NULL) {
+    if ((*cur)->value == value) {
+      lnode *deleted = *cur;
+      *cur = (*cur)->next;
+      lnode_free(deleted);
+      return 0;
+    }
+    cur = &(*cur)->next;
+  }
+
+  return -1;
+}
+
+lnode *llist_find(llist *list, size_t value) {
+  lnode **cur = &list->head;
+
+  while ((*cur) != NULL) {
+    if ((*cur)->value == value) {
+      return *cur;
+    }
+    cur = &(*cur)->next;
+  }
+
+  return NULL;
+}
+
+lnode *lnode_new(size_t value) {
+  lnode *node = calloc(1, sizeof(*node));
+  node->next = NULL;
+  node->value = value;
+
+  return node;
+}
+
+void lnode_free(lnode *node) { free(node); }
