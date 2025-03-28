@@ -92,17 +92,6 @@ lnode *lnode_new(size_t value) {
 
 void lnode_free(lnode *node) { free(node); }
 
-/* All the operations take the same context since none of them take a position
-as argument:
-
-- Search: Searches for the first ocurrence of value
-- Insert: Inserts value at the end of the list
-- Delete: Deletes the first ocurrence of value */
-typedef struct {
-  llist *list;
-  size_t value;
-} llist_ctx;
-
 /* A searcher can only search if there is no deleter currently holding the list
  */
 int llist_searcher_acquire(llist *list) {
