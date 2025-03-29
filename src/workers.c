@@ -149,17 +149,10 @@ void *searcher_thread(void *args) {
 
   llist_searcher_acquire(ctx.list);
 
-  for (lnode *cur = ctx.list->head; cur != NULL; cur = cur->next) {
-    if (cur->value == ctx.value) {
-      int *result = malloc(sizeof(int));
-      *result = 1;
-      llist_searcher_release(ctx.list);
-      return result;
-    }
-  }
+  void *result = llist_find(ctx.list, ctx.value);
 
   llist_searcher_release(ctx.list);
-  return 0;
+  return result;
 }
 
 /* TODO: What can we return?
