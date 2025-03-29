@@ -36,9 +36,4 @@ lnode* llist_find(llist *list, size_t value);
 lnode *lnode_new(size_t value);
 void lnode_free(lnode *node);
 
-void* searcher_thread(void*);
-void* inserter_thread(void*);
-void* deleter_thread(void*);
-
-
 #endif
