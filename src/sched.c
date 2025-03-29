@@ -13,7 +13,7 @@ worker_queue worker_queue_new(size_t cap, llist *list, thread_fn f) {
   q.threads = (pthread_t *)calloc(cap, sizeof(pthread_t));
   q.ctxs = (llist_ctx *)calloc(cap, sizeof(llist_ctx));
 
-  for (int i = 0; i < cap; i++) {
+  for (size_t i = 0; i < cap; i++) {
     q.ctxs[i].list = list;
   }
 
@@ -21,7 +21,7 @@ worker_queue worker_queue_new(size_t cap, llist *list, thread_fn f) {
 }
 
 void worker_queue_append_random(worker_queue *q) {
-  q->ctxs[q->len].value = rand();
+  q->ctxs[q->len].value = (size_t)rand();
   pthread_create(&q->threads[q->len], NULL, q->function, &q->ctxs[q->len]);
   q->len++;
 }
@@ -32,7 +32,7 @@ void worker_queue_free(worker_queue q) {
 }
 
 void worker_queue_join(worker_queue q) {
-  for (int i = 0; i < q.len; i++) {
+  for (size_t i = 0; i < q.len; i++) {
     pthread_join(q.threads[i], NULL);
   }
   worker_queue_free(q);
