@@ -98,13 +98,15 @@ int llist_searcher_acquire(llist *list) {
   if (pthread_mutex_lock(&list->searcher_mutex) < 0)
     return -1;
 
-  list->searcher_count++;
 
   /* Only the first searcher locks the no_searcher semaphore */
   if (list->searcher_count == 1) {
     if (sem_wait(&list->no_searcher) < 0)
       return -1;
   }
+
+  /* Only increment searcher_count after we've locked no_searcher */
+  list->searcher_count++;
 
   /* Unlock the mutex so other searchers can enter */
   if (pthread_mutex_unlock(&list->searcher_mutex) < 0)
@@ -119,7 +121,7 @@ int llist_searcher_release(llist *list) {
 
   list->searcher_count--;
 
-  /* Only the last searcher locks the no_searcher semaphore */
+  /* Only the last searcher unlocks the no_searcher semaphore */
   if (list->searcher_count == 0) {
     if (sem_post(&list->no_searcher) < 0)
       return -1;
@@ -164,12 +166,6 @@ int llist_inserter_release(llist *list) {
 /* A deleter can only search if there are no searchers or inserters holding
  the list */
 int llist_deleter_acquire(llist *list) {
-  /* We need to lock the searcher_mutex to avoid a situation where a searcher
-   * locks searcher_mutex, increments search_counter but a deleter locks the
-   * no_searcher semaphore first. Thus searcher_count would incorrectly state
-   * the number of active searchers */
-  if (pthread_mutex_lock(&list->searcher_mutex) < 0)
-    return -1;
   if (sem_wait(&list->no_searcher))
     return -1;
   if (sem_wait(&list->no_inserter) < 0)
