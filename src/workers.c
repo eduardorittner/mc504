@@ -111,7 +111,7 @@ int llist_deleter_acquire(llist *list) {
   state_print(&list->st);
   pthread_mutex_unlock(&list->st.lock);
 
-  if (sem_wait(&list->no_searcher))
+  if (sem_wait(&list->no_searcher) < 0)
     return -1;
   if (sem_wait(&list->no_inserter) < 0)
     return -1;
