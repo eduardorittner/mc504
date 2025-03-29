@@ -117,11 +117,6 @@ int llist_deleter_acquire(llist *list) {
   if (sem_wait(&list->no_inserter) < 0)
     return -1;
 
-  /* There's no need to keep the mutex locked while in the critical section
-   * since searchers will wait on no_searcher anyway */
-  if (pthread_mutex_unlock(&list->searcher_mutex) < 0)
-    return -1;
-
   pthread_mutex_lock(&list->st.lock);
   list->st.deleters_waiting--;
   list->st.deleters++;
