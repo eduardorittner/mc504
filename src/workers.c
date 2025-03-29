@@ -20,14 +20,13 @@ int llist_searcher_acquire(llist *list) {
   state_print(&list->st);
   pthread_mutex_unlock(&list->st.lock);
 
+  list->searcher_count++;
+
   /* Only the first searcher locks the no_searcher semaphore */
   if (list->searcher_count == 1) {
     if (sem_wait(&list->no_searcher) < 0)
       return -1;
   }
-
-  /* Only increment searcher_count after we've locked no_searcher */
-  list->searcher_count++;
 
   /* Unlock the mutex so other searchers can enter */
   if (pthread_mutex_unlock(&list->searcher_mutex) < 0)
