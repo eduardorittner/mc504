@@ -37,6 +37,7 @@ typedef struct {
 } llist_ctx;
 
 llist *llist_new(void);
+void llist_free(llist*);
 void llist_print(llist *list);
 void llist_push_back(llist *list, size_t value);
 int llist_delete(llist *list, size_t value);

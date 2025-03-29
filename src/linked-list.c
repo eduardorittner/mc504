@@ -15,6 +15,24 @@ llist *llist_new(void) {
   return list;
 }
 
+void llist_free(llist *list) {
+  lnode *prev, *cur;
+  prev = list->head;
+
+  while (prev != NULL) {
+    cur = prev->next;
+    free(prev);
+    prev = cur;
+  }
+
+  pthread_mutex_destroy(&list->inserter);
+  pthread_mutex_destroy(&list->searcher_mutex);
+  pthread_mutex_destroy(&list->st.lock);
+  sem_destroy(&list->no_searcher);
+  sem_destroy(&list->no_inserter);
+  free(list);
+}
+
 void llist_print(llist *list) {
   size_t len = 128;
   char *buffer = calloc(len, sizeof(*buffer));
@@ -26,17 +44,20 @@ void llist_print(llist *list) {
 
     if (index < 0) {
       fprintf(stderr, "Couldn't print list");
+      free(buffer);
       return;
     }
 
     if ((size_t)index > len) {
       // TODO add some handling here
       fprintf(stderr, "List too big to print");
+      free(buffer);
       return;
     }
   }
 
   printf("%s\n", buffer);
+  free(buffer);
 }
 
 void llist_push_back(llist *list, size_t value) {
