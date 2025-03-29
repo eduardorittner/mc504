@@ -1,5 +1,6 @@
 #include "linked-list.h"
 #include "sync.h"
+#include "workers.h"
 #include <stdio.h>
 #include <stdlib.h>
 

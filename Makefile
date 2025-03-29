@@ -3,13 +3,13 @@ CFLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -fsanitize=address
 BUILD_DIR = build
 SRC_DIR = src
 
-_SRCS = main.c linked-list.c
+_SRCS = main.c linked-list.c workers.c
 SRCS = $(SRCS:%.c=$(SRC_DIR)/%.c)
 
-_OBJS = main.o linked-list.o
+_OBJS = main.o linked-list.o workers.o
 OBJS = $(_OBJS:%.o=$(BUILD_DIR)/%.o)
 
-_DEPS = linked-list.h sync.h
+_DEPS = linked-list.h sync.h workers.h
 DEPS = $(_DEPS:%.h=$(SRC_DIR)/%.h)
 
 EXEC = $(BUILD_DIR)/main

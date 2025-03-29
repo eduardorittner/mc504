@@ -25,16 +25,6 @@ typedef struct {
 		atomic_int searcher_count;
 } llist;
 
-/* All the operations take the same context since none of them take a position
-as argument:
-
-- Search: Searches for the first ocurrence of value
-- Insert: Inserts value at the end of the list
-- Delete: Deletes the first ocurrence of value */
-typedef struct {
-  llist *list;
-  size_t value;
-} llist_ctx;
 
 llist *llist_new(void);
 void llist_free(llist*);
