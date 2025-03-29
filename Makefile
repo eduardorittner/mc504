@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -fsanitize=address
+CFLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -fsanitize=address -std=c17
 BUILD_DIR = build
 SRC_DIR = src
 
