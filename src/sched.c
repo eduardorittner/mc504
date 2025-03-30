@@ -38,9 +38,17 @@ void worker_queue_join(worker_queue q) {
   worker_queue_free(q);
 }
 
-run_cfg run_cfg_new(size_t init, size_t s, size_t i, size_t d) {
+llist *llist_random(size_t size) {
   llist *list = llist_new();
-  // TODO generate random list
+  for (size_t i = 0; i < size; i++) {
+    llist_push_back(list, (size_t)rand());
+  }
+
+  return list;
+}
+
+run_cfg run_cfg_new(size_t init, size_t s, size_t i, size_t d) {
+  llist *list = llist_random(init);
   run_cfg cfg = {0};
   cfg.initial_size = init;
   cfg.list = list;
