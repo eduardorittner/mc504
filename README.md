@@ -30,3 +30,38 @@ The default compiler is gcc, to use a different compiler, change the `CC`
 variable in the Makefile to be whatever you want. This project has been tested
 to work with clang and tinycc in addition to gcc.
 
+## Our solution
+
+In order to solve the problem, we implemented a linked list and its operations:
+find, push_back and delete. These functions are simple and don't concern
+themselves with any synchronization, which must be handled by their callers.
+
+For synchronization, we use mutexes, semaphores and atomic integers, our
+linked-list definition is:
+
+```c
+typedef struct {
+    lnode* head;
+    sem_t no_searcher;
+    sem_t no_inserter;
+    pthread_mutex_t searcher_mutex;
+    atomic_int searcher_count;
+    state st;
+} llist;
+```
+
+`head` points to the first node of the linked list, and `state` is internal
+state used for debugging and printing current state.
+
+`searcher_count` is used to store the number of active searchers. Whenever a
+searcher enters or leaves, it needs to first lock `searcher_mutex`, update
+`searcher_count` and unlock `searcher_mutex`. Special care must be taken when
+the first searcher enters (`searcher_count == 1`) and when the last searcher
+leaves (`searcher_count == 0`), since they must `wait` and `post` the
+`no_searcher` semaphore, respectively.
+
+`no_inserter` is a semaphore which cna be held by only on inserter or deleter
+at a time.
+
+While a deleter is running, it locks both `no_inserter` and `no_searcher`,
+preventing any searchers or inserters from running.
