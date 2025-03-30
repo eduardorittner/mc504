@@ -2,6 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -fsanitize=address -std=c17
 BUILD_DIR = build
 SRC_DIR = src
+TEST_DIR = test
 
 _SRCS = main.c linked-list.c workers.c sched.c
 SRCS = $(SRCS:%.c=$(SRC_DIR)/%.c)
@@ -20,10 +21,13 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c $(DEPS)
 $(BUILD_DIR)/main: $(OBJS)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
-.PHONY: clean
-
 run: $(BUILD_DIR)/main
 	$(BUILD_DIR)/main
+
+.PHONY: clean test
+
+test:
+	$(MAKE) -C $(TEST_DIR) test
 
 clean:
 	rm -f $(BUILD_DIR)/*
