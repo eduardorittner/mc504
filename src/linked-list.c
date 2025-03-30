@@ -7,6 +7,7 @@ llist *llist_new(void) {
   llist *list = calloc(1, sizeof(*list));
   pthread_mutex_init(&list->inserter, NULL);
   pthread_mutex_init(&list->searcher_mutex, NULL);
+  pthread_mutex_init(&list->st.lock, NULL);
   sem_init(&list->no_searcher, 0, 1);
   sem_init(&list->no_inserter, 0, 1);
   list->searcher_count = 0;

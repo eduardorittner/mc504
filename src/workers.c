@@ -1,5 +1,12 @@
 #include "workers.h"
+#include <stdio.h>
 #include <stdlib.h>
+
+void state_print(state *s) {
+  printf("s: %d, s waiting: %d, i: %d, i waiting: %d, d: %d, d waiting: %d\n",
+         s->searchers, s->searchers_waiting, s->inserters, s->inserters_waiting,
+         s->deleters, s->deleters_waiting);
+}
 
 /* A searcher can only search if there is no deleter currently holding the list
  */
