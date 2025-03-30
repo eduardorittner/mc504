@@ -1,4 +1,5 @@
 #include "workers.h"
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -11,27 +12,64 @@ void state_print(state *s) {
 /* A searcher can only search if there is no deleter currently holding the list
  */
 int llist_searcher_acquire(llist *list) {
-
+  /* Debug state */
   pthread_mutex_lock(&list->st.lock);
   list->st.searchers_waiting++;
   state_print(&list->st);
   pthread_mutex_unlock(&list->st.lock);
+  /* End of debug state */
 
   /* Lock the mutex to update searcher count */
   if (pthread_mutex_lock(&list->searcher_mutex) < 0)
     return -1;
-
-  pthread_mutex_lock(&list->st.lock);
-  list->st.searchers++;
-  list->st.searchers_waiting--;
-  state_print(&list->st);
-  pthread_mutex_unlock(&list->st.lock);
 
   list->searcher_count++;
 
   /* Only the first searcher locks the no_searcher semaphore */
   if (list->searcher_count == 1) {
     if (sem_wait(&list->no_searcher) < 0)
+      return -1;
+  }
+
+  /* Debug state */
+  /* We only check this *after* we've locked the no_searcher semaphore */
+  pthread_mutex_lock(&list->st.lock);
+  list->st.searchers++;
+  list->st.searchers_waiting--;
+
+  /* Searchers cannot run concurrently with deleters */
+  assert(list->st.deleters == 0);
+  /* At most one inserter can be active at a time */
+  assert(list->st.inserters <= 1);
+
+  state_print(&list->st);
+  pthread_mutex_unlock(&list->st.lock);
+  /* End of debug state */
+
+  /* Unlock the mutex so other searchers can enter */
+  if (pthread_mutex_unlock(&list->searcher_mutex) < 0)
+    return -1;
+
+  return 0;
+}
+
+int llist_searcher_release(llist *list) {
+  /* Locks mutex to update searcher_count */
+  if (pthread_mutex_lock(&list->searcher_mutex) < 0)
+    return -1;
+
+  list->searcher_count--;
+
+  /* Debug state */
+  pthread_mutex_lock(&list->st.lock);
+  list->st.searchers--;
+  state_print(&list->st);
+  pthread_mutex_unlock(&list->st.lock);
+  /* End of debug state */
+
+  /* Only the last searcher unlocks the no_searcher semaphore */
+  if (list->searcher_count == 0) {
+    if (sem_post(&list->no_searcher) < 0)
       return -1;
   }
 
@@ -42,37 +80,18 @@ int llist_searcher_acquire(llist *list) {
   return 0;
 }
 
-int llist_searcher_release(llist *list) {
-  if (pthread_mutex_lock(&list->searcher_mutex) < 0)
-    return -1;
-
-  list->searcher_count--;
-  pthread_mutex_lock(&list->st.lock);
-  list->st.searchers--;
-  state_print(&list->st);
-  pthread_mutex_unlock(&list->st.lock);
-
-  /* Only the last searcher unlocks the no_searcher semaphore */
-  if (list->searcher_count == 0) {
-    if (sem_post(&list->no_searcher) < 0)
-      return -1;
-  }
-
-  if (pthread_mutex_unlock(&list->searcher_mutex) < 0)
-    return -1;
-
-  return 0;
-}
-
 /* An inserter can only enter if there are no deleters and no other inserters
  * holding the list */
 int llist_inserter_acquire(llist *list) {
+  /* Debug state */
   pthread_mutex_lock(&list->st.lock);
   list->st.inserters_waiting++;
   state_print(&list->st);
   pthread_mutex_unlock(&list->st.lock);
+  /* End of debug state */
 
-  // Lock the inserter mutex
+  /* Lock the inserter mutex, this mutex remains locked for the duration of the
+   * inserter's lifetime */
   if (pthread_mutex_lock(&list->inserter) < 0)
     return -1;
 
@@ -81,11 +100,19 @@ int llist_inserter_acquire(llist *list) {
   if (sem_wait(&list->no_inserter) < 0)
     return -1;
 
+  /* Debug state */
   pthread_mutex_lock(&list->st.lock);
   list->st.inserters++;
   list->st.inserters_waiting--;
+
+  /* At most one inserter can be active at a time */
+  assert(list->st.inserters <= 1);
+  /* Inserters and deleters cannot run concurrently */
+  assert(list->st.deleters == 0);
+
   state_print(&list->st);
   pthread_mutex_unlock(&list->st.lock);
+  /* End of debug state */
 
   return 0;
 }
@@ -94,16 +121,24 @@ int llist_inserter_acquire(llist *list) {
  * deleter will get priority over a waiting inserter TODO (should we do this?)
  */
 int llist_inserter_release(llist *list) {
-  // Signal that there are currently no inserters
-  if (sem_post(&list->no_inserter) < 0)
-    return -1;
-
+  /* Debug state */
   pthread_mutex_lock(&list->st.lock);
+
+  /* Inserters may only run one at a time */
+  assert(list->st.inserters == 1);
+  /* Inserters may not run concurrently with other deleters */
+  assert(list->st.deleters == 0);
+
   list->st.inserters--;
   state_print(&list->st);
   pthread_mutex_unlock(&list->st.lock);
+  /* End of debug state*/
 
-  // Unlock the mutex so another inserter can lock it
+  /* Signal that there are currently no inserters */
+  if (sem_post(&list->no_inserter) < 0)
+    return -1;
+
+  /* Unlock the mutex so another inserter can lock it */
   if (pthread_mutex_unlock(&list->inserter) < 0)
     return -1;
 
@@ -113,34 +148,56 @@ int llist_inserter_release(llist *list) {
 /* A deleter can only search if there are no searchers or inserters holding
  the list */
 int llist_deleter_acquire(llist *list) {
+  /* Debug state */
   pthread_mutex_lock(&list->st.lock);
   list->st.deleters_waiting++;
   state_print(&list->st);
   pthread_mutex_unlock(&list->st.lock);
+  /* End of debug state */
 
+  /* Wait until there are no searchers/inserters */
   if (sem_wait(&list->no_searcher) < 0)
     return -1;
   if (sem_wait(&list->no_inserter) < 0)
     return -1;
 
+  /* Debug state */
   pthread_mutex_lock(&list->st.lock);
   list->st.deleters_waiting--;
   list->st.deleters++;
+
+  /* Deleters cannot run concurrently with deleters, inserters or searchers */
+  assert(list->st.deleters == 1);
+  // assert(list->st.inserters == 0);
+  assert(list->st.searchers == 0);
+
   state_print(&list->st);
   pthread_mutex_unlock(&list->st.lock);
+  /* End of debug state */
+
   return 0;
 }
 
 /* Unlocks the no_searcher and no_inserter semaphores */
 int llist_deleter_release(llist *list) {
+  /* Debug state */
+  pthread_mutex_lock(&list->st.lock);
+  list->st.deleters--;
+
+  /* Deleters cannot run concurrently with deleters, inserters or searchers */
+  assert(list->st.deleters == 0);
+  assert(list->st.inserters == 0);
+  assert(list->st.searchers == 0);
+
+  state_print(&list->st);
+  pthread_mutex_unlock(&list->st.lock);
+  /* End of debug state */
+
+  /* Drop no_inserter and no_searchers semaphores */
   if (sem_post(&list->no_inserter) < 0)
     return -1;
   if (sem_post(&list->no_searcher) < 0)
     return -1;
-  pthread_mutex_lock(&list->st.lock);
-  list->st.deleters--;
-  state_print(&list->st);
-  pthread_mutex_unlock(&list->st.lock);
   return 0;
 }
 
