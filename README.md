@@ -20,3 +20,13 @@ and deleters such that:
 * At most one inserter can be active at any point in time
 * A deleter can only run if there are no searchers and inserters active
 
+## Compiling and running
+
+To compile this project run `make` on the repo's root, and the compiled binary
+will be saved in `build/main`. To compile and immediately run, one can use
+`make run`.
+
+The default compiler is gcc, to use a different compiler, change the `CC`
+variable in the Makefile to be whatever you want. This project has been tested
+to work with clang and tinycc in addition to gcc.
+
