@@ -1,9 +1,4 @@
-#include "linked-list.h"
 #include "sched.h"
-#include "sync.h"
-#include "workers.h"
-#include <stdio.h>
-#include <stdlib.h>
 
 #define INITIAL_SIZE 10000
 #define SEARCHERS 1000
