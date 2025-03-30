@@ -22,5 +22,8 @@ $(BUILD_DIR)/main: $(OBJS)
 
 .PHONY: clean
 
+run: $(BUILD_DIR)/main
+	$(BUILD_DIR)/main
+
 clean:
 	rm -f $(BUILD_DIR)/*
