@@ -90,11 +90,6 @@ int llist_inserter_acquire(llist *list) {
   pthread_mutex_unlock(&list->st.lock);
   /* End of debug state */
 
-  /* Lock the inserter mutex, this mutex remains locked for the duration of the
-   * inserter's lifetime */
-  if (pthread_mutex_lock(&list->inserter) < 0)
-    return -1;
-
   /* Since the deleter holds the no_inserter semaphore while it's active, we can
   use it as a way to find out if there is a deleter active */
   if (sem_wait(&list->no_inserter) < 0)
@@ -136,10 +131,6 @@ int llist_inserter_release(llist *list) {
 
   /* Signal that there are currently no inserters */
   if (sem_post(&list->no_inserter) < 0)
-    return -1;
-
-  /* Unlock the mutex so another inserter can lock it */
-  if (pthread_mutex_unlock(&list->inserter) < 0)
     return -1;
 
   return 0;

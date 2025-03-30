@@ -27,11 +27,9 @@ typedef struct {
 
 typedef struct {
 		lnode* head;
-		/* There can only be one inserter at a time */
-		pthread_mutex_t inserter; 
-		/* Used by the deleter to exclusively access the list, must be signaled by the
-		last searcher and inserter to leave */
+		/* The deleter holds both no_searcher and no_inserter while it's active */
 		sem_t no_searcher; 
+		/* Acts as a mutex so that only one inserter can be active at a time */
 		sem_t no_inserter;
 		pthread_mutex_t searcher_mutex;
 		atomic_int searcher_count;

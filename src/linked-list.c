@@ -5,7 +5,6 @@
 
 llist *llist_new(void) {
   llist *list = calloc(1, sizeof(*list));
-  pthread_mutex_init(&list->inserter, NULL);
   pthread_mutex_init(&list->searcher_mutex, NULL);
   pthread_mutex_init(&list->st.lock, NULL);
   sem_init(&list->no_searcher, 0, 1);
@@ -26,7 +25,6 @@ void llist_free(llist *list) {
     prev = cur;
   }
 
-  pthread_mutex_destroy(&list->inserter);
   pthread_mutex_destroy(&list->searcher_mutex);
   pthread_mutex_destroy(&list->st.lock);
   sem_destroy(&list->no_searcher);
