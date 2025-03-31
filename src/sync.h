@@ -1,18 +1,21 @@
 #ifndef _SYNC_INCLUDE_H
 #define _SYNC_INCLUDE_H
 
-#include "linked-list.h"
+#include <semaphore.h>
+#include <pthread.h>
 
-/* Synchronization functions used by each of the worker types to access the
-linked list */
+/* Wrappers around pthread_mutex_* functions that prints to stderr and calls exit
+on failure */
 
-int llist_searcher_acquire(llist*);
-int llist_searcher_release(llist*);
+pthread_mutex_t* mutex_new(pthread_mutex_t* mutex);
+void mutex_acquire(pthread_mutex_t* mutex);
+void mutex_release(pthread_mutex_t *mutex);
 
-int llist_inserter_acquire(llist*);
-int llist_inserter_release(llist*);
+/* Wrappers around sem_* functions that prints to stderr and calls exit on
+failure */
 
-int llist_deleter_acquire(llist*);
-int llist_deleter_release(llist*);
+sem_t* sem_new(sem_t* sem, int value);
+void sem_acquire(sem_t *sem);
+void sem_release(sem_t *sem);
 
 #endif

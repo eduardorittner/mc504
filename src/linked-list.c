@@ -5,10 +5,10 @@
 
 llist *llist_new(void) {
   llist *list = calloc(1, sizeof(*list));
-  pthread_mutex_init(&list->searcher_mutex, NULL);
-  pthread_mutex_init(&list->st.lock, NULL);
-  sem_init(&list->no_searcher, 0, 1);
-  sem_init(&list->no_inserter, 0, 1);
+  mutex_new(&list->searcher_mutex);
+  mutex_new(&list->st.lock);
+  sem_new(&list->no_searcher, 1);
+  sem_new(&list->no_inserter, 1);
   list->searcher_count = 0;
   list->head = NULL;
 
