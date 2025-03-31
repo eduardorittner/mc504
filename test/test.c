@@ -96,6 +96,10 @@ SUITE(main_suite) {
 void *inserter_acquire(void *arg) {
   llist_ctx *ctx = arg;
   sem_trywait(&ctx->list->no_inserter);
+  int result = errno;
+  /* NOTE if sem_post fails errno will also be set and we want to ignore this */
+  sem_post(&ctx->list->no_inserter);
+  errno = result;
   return &errno;
 }
 
@@ -121,7 +125,111 @@ TEST concurrent_inserters(void) {
   PASS();
 }
 
-SUITE(sync) { RUN_TEST(concurrent_inserters); }
+/* Use trywait to check whether semaphore is locked and return errno */
+void *deleter_acquire(void *arg) {
+  llist_ctx *ctx = arg;
+  sem_trywait(&ctx->list->no_inserter);
+  if (errno == EAGAIN)
+    return &errno;
+  sem_trywait(&ctx->list->no_inserter);
+  return &errno;
+}
+
+/* We lock the list using llist_inserter_acquire and then create another
+ * thread that calls sem_trywait on no_inserter and no_searcher. If
+ * llist_deleter_acquire is working correctly, no_inserter and no_searcher
+ * should be locked and sem_trywait returns EAGAIN */
+TEST concurrent_deleters(void) {
+  llist *list = llist_new();
+  pthread_t thread;
+  llist_ctx ctx = {list, 0};
+  llist_inserter_acquire(list);
+
+  pthread_create(&thread, NULL, deleter_acquire, &ctx);
+  int *result;
+  pthread_join(thread, (void **)&result);
+
+  /* If the no_inserter semaphore was locked, errno should be EAGAIN */
+  ASSERT_EQ_FMT(EAGAIN, *result, "%d\n");
+
+  llist_free(list);
+  PASS();
+}
+
+/* Test that inserters and deleters do not run concurrently, we use
+ * inserter_acquire and check that the deleter can't acces the list and
+ * vice-versa */
+TEST inserters_and_deleters(void) {
+  llist *list = llist_new();
+  pthread_t thread;
+  llist_ctx ctx = {list, 0};
+  int *result;
+
+  llist_inserter_acquire(list);
+  pthread_create(&thread, NULL, deleter_acquire, &ctx);
+  pthread_join(thread, (void **)&result);
+  llist_inserter_release(list);
+
+  /* If the no_inserter semaphore was locked, errno should be EAGAIN */
+  ASSERT_EQ_FMT(EAGAIN, *result, "%d\n");
+
+  llist_deleter_acquire(list);
+  pthread_create(&thread, NULL, inserter_acquire, &ctx);
+  pthread_join(thread, (void **)&result);
+  llist_deleter_release(list);
+
+  /* If the no_inserter semaphore was locked, errno should be EAGAIN */
+  ASSERT_EQ_FMT(EAGAIN, *result, "%d\n");
+
+  llist_free(list);
+  PASS();
+}
+
+TEST inserters_and_searchers(void) {
+  llist *list = llist_new();
+  pthread_t thread;
+  llist_ctx ctx = {list, 0};
+  int *result;
+
+  llist_searcher_acquire(list);
+
+  pthread_create(&thread, NULL, inserter_acquire, &ctx);
+  pthread_join(thread, (void **)&result);
+
+  ASSERT_EQ_FMT(0, *result, "%d");
+
+  llist_searcher_release(list);
+
+  PASS();
+}
+
+TEST deleters_and_searchers(void) {
+  llist *list = llist_new();
+  pthread_t thread;
+  llist_ctx ctx = {list, 0};
+  int *result;
+
+  llist_searcher_acquire(list);
+
+  pthread_create(&thread, NULL, deleter_acquire, &ctx);
+  pthread_join(thread, (void **)&result);
+
+  ASSERT_EQ_FMT(EAGAIN, *result, "%d");
+
+  llist_searcher_release(list);
+
+  llist_free(list);
+
+  PASS();
+}
+
+SUITE(sync) {
+  RUN_TEST(concurrent_inserters);
+  RUN_TEST(concurrent_deleters);
+  RUN_TEST(inserters_and_deleters);
+  RUN_TEST(inserters_and_searchers);
+  RUN_TEST(deleters_and_searchers);
+}
 
 /* Add definitions that need to be in the test runner's main file. */
 GREATEST_MAIN_DEFS();
