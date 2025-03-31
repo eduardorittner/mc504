@@ -13,12 +13,12 @@ void state_print(state *s) {
 /* A searcher can only search if there is no deleter currently holding the list
  */
 int llist_searcher_acquire(llist *list) {
-  /* Debug state */
+#ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.searchers_waiting++;
   state_print(&list->st);
   mutex_release(&list->st.lock);
-  /* End of debug state */
+#endif // NDEBUG
 
   /* Lock the mutex to update searcher count */
   mutex_acquire(&list->searcher_mutex);
@@ -30,7 +30,7 @@ int llist_searcher_acquire(llist *list) {
     sem_acquire(&list->no_searcher);
   }
 
-  /* Debug state */
+#ifndef NDEBUG
   /* We only check this *after* we've locked the no_searcher semaphore */
   mutex_acquire(&list->st.lock);
   list->st.searchers++;
@@ -43,7 +43,7 @@ int llist_searcher_acquire(llist *list) {
 
   state_print(&list->st);
   mutex_release(&list->st.lock);
-  /* End of debug state */
+#endif // NDEBUG
 
   /* Unlock the mutex so other searchers can enter */
   mutex_release(&list->searcher_mutex);
@@ -57,12 +57,12 @@ int llist_searcher_release(llist *list) {
 
   list->searcher_count--;
 
-  /* Debug state */
+#ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.searchers--;
   state_print(&list->st);
   mutex_release(&list->st.lock);
-  /* End of debug state */
+#endif // NDEBUG
 
   /* Only the last searcher unlocks the no_searcher semaphore */
   if (list->searcher_count == 0) {
@@ -78,18 +78,18 @@ int llist_searcher_release(llist *list) {
 /* An inserter can only enter if there are no deleters and no other inserters
  * holding the list */
 int llist_inserter_acquire(llist *list) {
-  /* Debug state */
+#ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.inserters_waiting++;
   state_print(&list->st);
   mutex_release(&list->st.lock);
-  /* End of debug state */
+#endif // NDEBUG
 
   /* Since the deleter holds the no_inserter semaphore while it's active, we can
   use it as a way to find out if there is a deleter active */
   sem_acquire(&list->no_inserter);
 
-  /* Debug state */
+#ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.inserters++;
   list->st.inserters_waiting--;
@@ -101,7 +101,7 @@ int llist_inserter_acquire(llist *list) {
 
   state_print(&list->st);
   mutex_release(&list->st.lock);
-  /* End of debug state */
+#endif // NDEBUG
 
   return 0;
 }
@@ -110,7 +110,7 @@ int llist_inserter_acquire(llist *list) {
  * deleter will get priority over a waiting inserter TODO (should we do this?)
  */
 int llist_inserter_release(llist *list) {
-  /* Debug state */
+#ifndef NDEBUG
   mutex_acquire(&list->st.lock);
 
   /* Inserters may only run one at a time */
@@ -121,7 +121,7 @@ int llist_inserter_release(llist *list) {
   list->st.inserters--;
   state_print(&list->st);
   mutex_release(&list->st.lock);
-  /* End of debug state*/
+#endif // NDEBUG
 
   /* Signal that there are currently no inserters */
   sem_release(&list->no_inserter);
@@ -132,18 +132,18 @@ int llist_inserter_release(llist *list) {
 /* A deleter can only search if there are no searchers or inserters holding
  the list */
 int llist_deleter_acquire(llist *list) {
-  /* Debug state */
+#ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.deleters_waiting++;
   state_print(&list->st);
   mutex_release(&list->st.lock);
-  /* End of debug state */
+#endif // NDEBUG
 
   /* Wait until there are no searchers/inserters */
   sem_acquire(&list->no_searcher);
   sem_acquire(&list->no_inserter);
 
-  /* Debug state */
+#ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.deleters_waiting--;
   list->st.deleters++;
@@ -155,14 +155,14 @@ int llist_deleter_acquire(llist *list) {
 
   state_print(&list->st);
   mutex_release(&list->st.lock);
-  /* End of debug state */
+#endif // NDEBUG
 
   return 0;
 }
 
 /* Unlocks the no_searcher and no_inserter semaphores */
 int llist_deleter_release(llist *list) {
-  /* Debug state */
+#ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.deleters--;
 
@@ -173,7 +173,7 @@ int llist_deleter_release(llist *list) {
 
   state_print(&list->st);
   mutex_release(&list->st.lock);
-  /* End of debug state */
+#endif // NDEBUG
 
   /* Drop no_inserter and no_searchers semaphores */
   sem_release(&list->no_inserter);
