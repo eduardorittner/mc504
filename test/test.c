@@ -1,5 +1,7 @@
 #include "../src/linked-list.h"
+#include "../src/workers.h"
 #include "greatest.h"
+#include <errno.h>
 
 /* Assert that creating and freeing a linked list incurs no memory leaks, note
  * that this test may pass but still trigger the address sanitizer, which is
@@ -90,6 +92,37 @@ SUITE(main_suite) {
   RUN_TEST(find_simple);
 }
 
+/* Use trywait to check whether semaphore is locked and return errno */
+void *inserter_acquire(void *arg) {
+  llist_ctx *ctx = arg;
+  sem_trywait(&ctx->list->no_inserter);
+  return &errno;
+}
+
+/* We lock the list using llist_inserter_acquire and then create another thread
+ * that calls sem_trywait on no_inserter. If llist_inserter_acquire is working
+ * correctly, no_inserter should be locked and sem_trywait returns EAGAIN */
+TEST concurrent_inserters(void) {
+  llist *list = llist_new();
+  pthread_t thread;
+  llist_ctx ctx = {list, 0};
+
+  llist_inserter_acquire(list);
+
+  pthread_create(&thread, NULL, inserter_acquire, &ctx);
+  int *result;
+  pthread_join(thread, (void **)&result);
+
+  /* If the no_inserter semaphore was locked, errno should be EAGAIN */
+  ASSERT_EQ_FMT(EAGAIN, *result, "%d\n");
+
+  llist_free(list);
+
+  PASS();
+}
+
+SUITE(sync) { RUN_TEST(concurrent_inserters); }
+
 /* Add definitions that need to be in the test runner's main file. */
 GREATEST_MAIN_DEFS();
 
@@ -97,6 +130,7 @@ int main(int argc, char **argv) {
   GREATEST_MAIN_BEGIN(); /* command-line options, initialization. */
 
   RUN_SUITE(main_suite);
+  RUN_SUITE(sync);
 
   GREATEST_MAIN_END(); /* display results */
 }

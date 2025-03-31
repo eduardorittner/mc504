@@ -18,4 +18,11 @@ void* searcher_thread(void*);
 void* inserter_thread(void*);
 void* deleter_thread(void*);
 
+int llist_searcher_acquire(llist*);
+int llist_searcher_release(llist*);
+int llist_inserter_acquire(llist*);
+int llist_inserter_release(llist*);
+int llist_deleter_acquire(llist*);
+int llist_deleter_release(llist*);
+
 #endif
