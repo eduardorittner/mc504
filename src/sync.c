@@ -25,9 +25,7 @@ void mutex_release(pthread_mutex_t *mutex) {
   }
 }
 
-/* Wrappers around sem_wait functions that */
-
-sem_t *sem_new(sem_t *sem, int value) {
+sem_t *sem_new(sem_t *sem, unsigned int value) {
   if (sem_init(sem, 0, value) < 0) {
     perror("Couldn't initialize semaphore");
     exit(-1);
