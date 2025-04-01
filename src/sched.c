@@ -38,8 +38,8 @@ void worker_queue_join(worker_queue q) {
   worker_queue_free(q);
 }
 
-llist *llist_random(size_t size) {
-  llist *list = llist_new();
+llist *llist_random(size_t size, size_t log_len) {
+  llist *list = llist_new(log_len);
   for (size_t i = 0; i < size; i++) {
     llist_push_back(list, (size_t)rand());
   }
@@ -48,7 +48,7 @@ llist *llist_random(size_t size) {
 }
 
 run_cfg run_cfg_new(size_t init, size_t s, size_t i, size_t d) {
-  llist *list = llist_random(init);
+  llist *list = llist_random(init, (s + i + d) * 6);
   run_cfg cfg = {0};
   cfg.initial_size = init;
   cfg.list = list;
@@ -89,6 +89,8 @@ void run_cfg_run(run_cfg *cfg) {
   worker_queue_join(cfg->searchers);
   worker_queue_join(cfg->inserters);
   worker_queue_join(cfg->deleters);
+
+  llog_print_pretty(cfg->list->log);
 
   llist_free(cfg->list);
 }

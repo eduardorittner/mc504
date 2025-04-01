@@ -5,6 +5,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <stdatomic.h>
+#include "log.h"
 
 struct lnode;
 
@@ -27,6 +28,7 @@ typedef struct {
 
 typedef struct {
 		lnode* head;
+		llog* log;
 		/* The deleter holds both no_searcher and no_inserter while it's active */
 		sem_t no_searcher; 
 		/* Acts as a mutex so that only one inserter can be active at a time */
@@ -37,7 +39,7 @@ typedef struct {
 } llist;
 
 
-llist *llist_new(void);
+llist *llist_new(size_t log_len);
 void llist_free(llist*);
 void llist_print(llist *list);
 void llist_push_back(llist *list, size_t value);
