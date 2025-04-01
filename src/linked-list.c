@@ -7,7 +7,6 @@
 llist *llist_new(size_t log_len) {
   llist *list = calloc(1, sizeof(*list));
   list->log = llog_new(log_len);
-  mutex_new(&list->st.lock);
   sem_new(&list->no_searcher, 1);
   sem_new(&list->no_inserter, 1);
   list->searcher_count = 0;
@@ -27,7 +26,6 @@ void llist_free(llist *list) {
   }
 
   pthread_mutex_destroy(&list->searcher_mutex);
-  pthread_mutex_destroy(&list->st.lock);
   sem_destroy(&list->no_searcher);
   sem_destroy(&list->no_inserter);
   llog_free(list->log);

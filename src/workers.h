@@ -2,6 +2,7 @@
 #define _WORKERS_INCLUDE_H
 
 #include "linked-list.h"
+#include "log.h"
 
 // #define NDEBUG
 

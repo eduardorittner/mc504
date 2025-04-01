@@ -14,18 +14,6 @@ typedef struct lnode {
 		size_t value;
 } lnode;
 
-/* Only used for debugging purposes, always updated whenever a thread does any
-action */
-typedef struct {
-	atomic_int searchers;
-	atomic_int searchers_waiting;
-	atomic_int inserters;
-	atomic_int inserters_waiting;
-	atomic_int deleters;
-	atomic_int deleters_waiting;
-	pthread_mutex_t lock;
-} state;
-
 typedef struct {
 		lnode* head;
 		llog* log;
@@ -35,7 +23,6 @@ typedef struct {
 		sem_t no_inserter;
 		pthread_mutex_t searcher_mutex;
 		atomic_int searcher_count;
-	  state st;
 } llist;
 
 
