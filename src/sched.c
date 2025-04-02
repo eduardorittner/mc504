@@ -91,6 +91,7 @@ void run_cfg_run(run_cfg *cfg) {
   worker_queue_join(cfg->deleters);
 
   llog_print_pretty(cfg->list->log);
+  llog_print_stats(cfg->list->log);
 
   llist_free(cfg->list);
 }

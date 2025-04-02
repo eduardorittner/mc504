@@ -4,8 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #define LOG
-
 /* A searcher can only search if there is no deleter currently holding the list
  */
 int llist_searcher_acquire(llist *list) {

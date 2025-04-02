@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -fsanitize=address -std=c17
+CFLAGS = -Wall -Wextra -Wpedantic -Wformat=2 -Wconversion -fsanitize=address -std=c17 -D_POSIX_C_SOURCE=199309L
 BUILD_DIR = build
 SRC_DIR = src
 TEST_DIR = test

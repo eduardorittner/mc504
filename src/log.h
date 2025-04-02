@@ -4,6 +4,10 @@
 #include <stddef.h>
 #include <stdatomic.h>
 #include <stdlib.h>
+#include <time.h>
+#include <pthread.h>
+
+//#define LOG
 
 typedef enum {
   SEARCHER_WAIT,
@@ -20,9 +24,15 @@ typedef enum {
 } wevent;
 
 typedef struct {
+  wevent type;
+  struct timespec time;
+  pthread_t id;
+} llog_entry; 
+
+typedef struct {
   size_t cap;
   atomic_size_t len;
-  wevent* events;
+  llog_entry* log;
 } llog;
 
 llog* llog_new(size_t cap);
@@ -30,5 +40,6 @@ void llog_free(llog* log);
 void llog_push(llog* log, wevent event);
 void llog_print(llog* log);
 void llog_print_pretty(llog* log);
+void llog_print_stats(llog* log);
 
 #endif
