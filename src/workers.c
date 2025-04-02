@@ -101,6 +101,10 @@ int llist_deleter_acquire(llist *list) {
   /* Wait until there are no searchers/inserters */
   sem_acquire(&list->no_searcher);
   sem_acquire(&list->no_inserter);
+  /* NOTE by changing the order in which we wait, we change the averate wait
+   * time for searchers and inserters. More precisely, whichever semaphore we
+   * hold first will drive the corresponding wait time up. It doesn't seem to
+   * affect the overall speed. */
 
 #ifdef LOG
   llog_push(list->log, DELETER_ENTER);
