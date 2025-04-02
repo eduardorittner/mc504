@@ -106,9 +106,6 @@ int llist_inserter_acquire(llist *list) {
   return 0;
 }
 
-/* Since we're unlocking no_inserter before the inserter mutex, a waiting
- * deleter will get priority over a waiting inserter TODO (should we do this?)
- */
 int llist_inserter_release(llist *list) {
 #ifndef NDEBUG
   mutex_acquire(&list->st.lock);
