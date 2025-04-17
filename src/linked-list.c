@@ -60,6 +60,9 @@ void llist_print(llist *list) {
 }
 
 void llist_push_back(llist *list, size_t value) {
+  /*
+  Append the value to the end of the linked list.
+  */
   lnode *new_node = lnode_new(value);
 
   lnode **cur = &list->head;
@@ -74,6 +77,12 @@ void llist_push_back(llist *list, size_t value) {
 }
 
 int llist_delete(llist *list, size_t value) {
+  /*
+  This function tries to delete the first element equals to value in the list.
+  If such value is found, the function deletes the respective node from the list and
+  returns 0.
+  Otherwise, i.e. if there is no such element, the function returns -1.
+  */
   lnode **cur = &list->head;
 
   while ((*cur) != NULL) {
@@ -90,6 +99,11 @@ int llist_delete(llist *list, size_t value) {
 }
 
 lnode *llist_find(llist *list, size_t value) {
+  /*
+  Searches for value in the given list.
+  If value is in the list, return a pointer to the node containing the value;
+  Otherwise, return NULL.
+  */
   lnode **cur = &list->head;
 
   while ((*cur) != NULL) {

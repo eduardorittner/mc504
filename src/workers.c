@@ -10,9 +10,15 @@ void state_print(state *s) {
          s->deleters, s->deleters_waiting);
 }
 
-/* A searcher can only search if there is no deleter currently holding the list
- */
 int llist_searcher_acquire(llist *list) {
+  /*
+  A searcher can only search if there is no deleter currently holding the list.
+  Initially, we simply add one to the counter searcher_count.
+  Then, note that, in practice, we just need to acquire the no_searcher sempaphore,
+  which informs other threads that at least one searcher is running and ensures it will
+  not run concurrently with deleters.
+  An important detail is to acquire this semaphore only when searcher_count == 1.
+  */
 #ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.searchers_waiting++;
@@ -52,6 +58,12 @@ int llist_searcher_acquire(llist *list) {
 }
 
 int llist_searcher_release(llist *list) {
+  /*
+  Decreases the searcher_count by one unit and, in case
+  there are no searchers running anymore (i.e. searchers_count == 0),
+  release the no_searcher semaphore to allow deleters to run.
+  */
+
   /* Locks mutex to update searcher_count */
   mutex_acquire(&list->searcher_mutex);
 
@@ -75,9 +87,12 @@ int llist_searcher_release(llist *list) {
   return 0;
 }
 
-/* An inserter can only enter if there are no deleters and no other inserters
- * holding the list */
 int llist_inserter_acquire(llist *list) {
+  /*
+  An inserter can only run if there are no deleters and no other inserters
+  holding the list.
+  Hence, we simply wait until we can acquire the no_inserter sempahore.
+  */
 #ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.inserters_waiting++;
@@ -107,6 +122,10 @@ int llist_inserter_acquire(llist *list) {
 }
 
 int llist_inserter_release(llist *list) {
+  /*
+  Simply release the no_inserter semaphore, informing the deleters threads
+  that they can run.
+  */
 #ifndef NDEBUG
   mutex_acquire(&list->st.lock);
 
@@ -126,10 +145,14 @@ int llist_inserter_release(llist *list) {
   return 0;
 }
 
-/* A deleter can only search if there are no searchers or inserters holding
- the list */
 int llist_deleter_acquire(llist *list) {
-#ifndef NDEBUG
+  /*
+  A deleter can only search if there are no searchers or inserters holding
+  the list.
+  Hence, we just wait until there are no searches and inserters by trying to
+  acquire the no_searcher and no_inserter semaphores.
+  */
+   #ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.deleters_waiting++;
   state_print(&list->st);
@@ -159,6 +182,10 @@ int llist_deleter_acquire(llist *list) {
 
 /* Unlocks the no_searcher and no_inserter semaphores */
 int llist_deleter_release(llist *list) {
+  /*
+  Release both no_inserter and no_searcher semaphores, indicating that
+  the deleters thread have finished.
+  */
 #ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.deleters--;
@@ -185,13 +212,24 @@ int llist_deleter_release(llist *list) {
 the list which can risk use-after-free or double-free
 */
 void *searcher_thread(void *args) {
+  /*
+  Firstly, we acquire the necessary semaphores to properly run
+  the searcher thread and tries to find the given value.
+  */
   llist_ctx ctx = *(llist_ctx *)args;
 
   llist_searcher_acquire(ctx.list);
 
+  // Here, I am sure the searcher thread is running
+  // Print the state showing that the searcher is currently searching for ctx->value
+
   void *result = llist_find(ctx.list, ctx.value);
 
   llist_searcher_release(ctx.list);
+
+  // Print the state here showing the result of the searcher thread
+  // result == 1 -> great, we have found the value!
+  // result == 0 -> we have not found the value!
   return result;
 }
 
