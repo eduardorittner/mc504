@@ -20,12 +20,12 @@ action.
 
 searchers is a list of integers such that each integer is a value that the thread is processing.
 inserters is an unique integer which is either the value being inserted by the thread or NULL in case no inserter is running.
-deleters is an unique integer which is either the value being deleted by the thread or NULL in case no deleter is running.
+deleters is an unique integer which is either the value being deleted by the thread or NULL in case no deleters is running.
 */
 typedef struct {
-	atomic_int searchers;
+	int_list searchers;
 	atomic_int searchers_waiting;
-	int_list inserters;
+	atomic_int inserters;
 	atomic_int inserters_waiting;
 	atomic_int deleters;
 	atomic_int deleters_waiting;
