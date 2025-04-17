@@ -5,12 +5,13 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <stdatomic.h>
+#include "int-list.h"
 
 struct lnode;
 
 typedef struct lnode {
-		struct lnode* next;
-		size_t value;
+	struct lnode* next;
+	size_t value;
 } lnode;
 
 /*
@@ -19,12 +20,12 @@ action.
 
 searchers is a list of integers such that each integer is a value that the thread is processing.
 inserters is an unique integer which is either the value being inserted by the thread or NULL in case no inserter is running.
-deleters is an unique integer which is either the value being deleted by the thread or NULL in case no inserter is running.
+deleters is an unique integer which is either the value being deleted by the thread or NULL in case no deleter is running.
 */
 typedef struct {
 	atomic_int searchers;
 	atomic_int searchers_waiting;
-	atomic_int inserters;
+	int_list inserters;
 	atomic_int inserters_waiting;
 	atomic_int deleters;
 	atomic_int deleters_waiting;
