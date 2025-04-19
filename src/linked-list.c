@@ -1,5 +1,6 @@
 #include "linked-list.h"
 #include "sync.h"
+#include "int-list.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,9 +10,13 @@ llist *llist_new(void) {
   mutex_new(&list->st.lock);
   sem_new(&list->no_searcher, 1);
   sem_new(&list->no_inserter, 1);
-  list->searcher_count = 0;
   list->head = NULL;
-
+  int_list_init(&list->st.searchers);
+  list->st.searchers_waiting = 0;
+  list->st.inserters = 0;
+  list->st.inserters_waiting = 0;
+  list->st.deleters = 0;
+  list->st.deleters_waiting = 0;
   return list;
 }
 
@@ -33,30 +38,16 @@ void llist_free(llist *list) {
 }
 
 void llist_print(llist *list) {
-  size_t len = 128;
-  char *buffer = calloc(len, sizeof(*buffer));
-  int index = 0;
+  lnode *current = list->head;
 
-  for (lnode *cur = list->head; cur != NULL; cur = cur->next) {
-    index +=
-        snprintf(&buffer[index], len - (size_t)index - 1, "%zu->", cur->value);
-
-    if (index < 0) {
-      fprintf(stderr, "Couldn't print list");
-      free(buffer);
-      return;
-    }
-
-    if ((size_t)index > len) {
-      // TODO add some handling here
-      fprintf(stderr, "List too big to print");
-      free(buffer);
-      return;
-    }
+  while (current != NULL) {
+      printf("%zu", current->value);
+      if (current->next != NULL) {
+          printf(" -> ");
+      }
+      current = current->next;
   }
-
-  printf("%s\n", buffer);
-  free(buffer);
+  printf("\n");
 }
 
 void llist_push_back(llist *list, size_t value) {
@@ -80,8 +71,8 @@ int llist_delete(llist *list, size_t value) {
   /*
   This function tries to delete the first element equals to value in the list.
   If such value is found, the function deletes the respective node from the list and
-  returns 0.
-  Otherwise, i.e. if there is no such element, the function returns -1.
+  returns 1.
+  Otherwise, i.e. if there is no such element, the function returns 0.
   */
   lnode **cur = &list->head;
 
@@ -90,12 +81,12 @@ int llist_delete(llist *list, size_t value) {
       lnode *deleted = *cur;
       *cur = (*cur)->next;
       lnode_free(deleted);
-      return 0;
+      return 1;
     }
     cur = &(*cur)->next;
   }
 
-  return -1;
+  return 0;
 }
 
 lnode *llist_find(llist *list, size_t value) {
