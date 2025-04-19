@@ -4,13 +4,13 @@ BUILD_DIR = build
 SRC_DIR = src
 TEST_DIR = test
 
-_SRCS = main.c linked-list.c workers.c sched.c sync.c
+_SRCS = main.c linked-list.c workers.c sched.c sync.c int-list.c
 SRCS = $(SRCS:%.c=$(SRC_DIR)/%.c)
 
-_OBJS = main.o linked-list.o workers.o sched.o sync.o
+_OBJS = main.o linked-list.o workers.o sched.o sync.o int-list.o
 OBJS = $(_OBJS:%.o=$(BUILD_DIR)/%.o)
 
-_DEPS = linked-list.h sync.h workers.h sched.h sync.h
+_DEPS = linked-list.h sync.h workers.h sched.h sync.h int-list.h
 DEPS = $(_DEPS:%.h=$(SRC_DIR)/%.h)
 
 EXEC = $(BUILD_DIR)/main
