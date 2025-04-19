@@ -21,7 +21,7 @@ worker_queue worker_queue_new(size_t cap, llist *list, thread_fn f) {
 }
 
 void worker_queue_append_random(worker_queue *q) {
-  q->ctxs[q->len].value = (size_t)rand();
+  q->ctxs[q->len].value = (size_t)(1 + rand() % 20);
   pthread_create(&q->threads[q->len], NULL, q->function, &q->ctxs[q->len]);
   q->len++;
 }
@@ -41,7 +41,7 @@ void worker_queue_join(worker_queue q) {
 llist *llist_random(size_t size) {
   llist *list = llist_new();
   for (size_t i = 0; i < size; i++) {
-    llist_push_back(list, (size_t)rand());
+    llist_push_back(list, (size_t)(1 + rand() % 20));
   }
 
   return list;
@@ -61,8 +61,8 @@ run_cfg run_cfg_new(size_t init, size_t s, size_t i, size_t d) {
 void run_cfg_run(run_cfg *cfg) {
   int choice;
   while (cfg->searchers.len < cfg->searchers.cap ||
-         cfg->inserters.len < cfg->inserters.cap ||
-         cfg->deleters.len < cfg->deleters.cap) {
+        cfg->inserters.len < cfg->inserters.cap ||
+        cfg->deleters.len < cfg->deleters.cap) {
 
   random_choice:
     choice = rand() % 3;
