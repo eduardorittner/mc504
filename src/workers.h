@@ -3,8 +3,6 @@
 
 #include "linked-list.h"
 
-// #define NDEBUG
-
 /*
 All the operations take the same context since none of them take a position
 as argument:

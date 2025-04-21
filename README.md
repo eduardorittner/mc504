@@ -24,8 +24,7 @@ and deleters such that:
 
 To compile this project run `make` on the repo's root, and the compiled binary
 will be saved in `build/main`. To compile and immediately run, one can use
-`make run`. By default debug information is printed, to disable it comment the
-`#define NDEBUG` line in `workers.h`.
+`make run`.
 
 The default compiler is gcc, to use a different compiler, change the `CC`
 variable in the Makefile to be whatever you want. This project has been tested
@@ -42,17 +41,18 @@ linked-list definition is:
 
 ```c
 typedef struct {
-    lnode* head;
-    sem_t no_searcher;
-    sem_t no_inserter;
-    pthread_mutex_t searcher_mutex;
-    atomic_int searcher_count;
-    state st;
+	lnode* head;
+	sem_t no_searcher; 
+	sem_t no_inserter;
+	pthread_mutex_t searcher_mutex;
+	atomic_int searcher_count;
+	state st;
 } llist;
 ```
 
-`head` points to the first node of the linked list, and `state` is internal
-state used for debugging and printing current state.
+`head` points to the first node of the linked list, and `state` is a struct
+which holds internal state used for debugging and printing the overall state
+accross all active threads.
 
 `searcher_count` is used to store the number of active searchers. Whenever a
 searcher enters or leaves, it needs to first lock `searcher_mutex`, update
@@ -61,11 +61,16 @@ the first searcher enters (`searcher_count == 1`) and when the last searcher
 leaves (`searcher_count == 0`), since they must `wait` and `post` the
 `no_searcher` semaphore, respectively.
 
-`no_inserter` is a semaphore which cna be held by only on inserter or deleter
+`no_inserter` is a semaphore which can be held by only on inserter or deleter
 at a time.
 
 While a deleter is running, it locks both `no_inserter` and `no_searcher`,
-preventing any searchers or inserters from running.
+preventing any searchers or inserters from running. The Little Book of
+Semaphores' solution proposes a third mutex meant for the deleter, so no two
+deleters access the list concurrently. However, this is not necessary since we
+can think of `no_inserter` and `no_searcher` combined as the deleter mutex,
+since if a deleter holds both, then no other deleter will be able to run, since
+they're already locked.
 
 ## Code organization
 
@@ -81,3 +86,4 @@ pthread_create), as well as worker-specific acquire/release function pairs.
 starts searchers, inserters and deleters at random, in hopes of testing more of
 the problem state. The total number of searchers, inserters, deleters and
 initial list size are all parameters which can be changed.
+*int-list.c (.h): Implements an integer list used for debug purposes to know which values are being searched, inserted and deleted at a given time.

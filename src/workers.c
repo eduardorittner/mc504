@@ -1,6 +1,6 @@
+#include "int-list.h"
 #include "sync.h"
 #include "workers.h"
-#include "int-list.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,26 +21,25 @@ void state_print(llist *list) {
     printf("    Deleting %ld\n", s->deleters);
   }
   printf("WAITING QUEUE:\n");
-  printf("    Searchers waiting: %d\n    Inserters waiting: %d\n    Deleters waiting: %d\n",
-        s->searchers_waiting, s->inserters_waiting, s->deleters_waiting);
+  printf("    Searchers waiting: %d\n    Inserters waiting: %d\n    Deleters "
+         "waiting: %d\n",
+         s->searchers_waiting, s->inserters_waiting, s->deleters_waiting);
 }
 
 int llist_searcher_acquire(llist_ctx *list_ctx) {
   /*
   A searcher can only search if there is no deleter currently holding the list.
   Initially, we simply add one to the counter searcher_count.
-  Then, note that, in practice, we just need to acquire the no_searcher sempaphore,
-  which informs other threads that at least one searcher is running and ensures it will
-  not run concurrently with deleters.
-  An important detail is to acquire this semaphore only when searcher_count == 1.
+  Then, note that, in practice, we just need to acquire the no_searcher
+  sempaphore, which informs other threads that at least one searcher is running
+  and ensures it will not run concurrently with deleters. An important detail is
+  to acquire this semaphore only when searcher_count == 1.
   */
   llist *list = list_ctx->list;
-  #ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.searchers_waiting++;
   state_print(list);
   mutex_release(&list->st.lock);
-#endif // NDEBUG
 
   /* Lock the mutex to update searcher count */
   mutex_acquire(&list->searcher_mutex);
@@ -52,7 +51,6 @@ int llist_searcher_acquire(llist_ctx *list_ctx) {
     sem_acquire(&list->no_searcher);
   }
 
-#ifndef NDEBUG
   /* We only check this *after* we've locked the no_searcher semaphore */
   mutex_acquire(&list->st.lock);
   list->st.searchers_waiting--;
@@ -64,7 +62,6 @@ int llist_searcher_acquire(llist_ctx *list_ctx) {
   // assert(list->st.inserters <= 1);
   state_print(list);
   mutex_release(&list->st.lock);
-#endif // NDEBUG
 
   /* Unlock the mutex so other searchers can enter */
   mutex_release(&list->searcher_mutex);
@@ -86,12 +83,10 @@ int llist_searcher_release(llist_ctx *list_ctx) {
 
   list->searcher_count--;
 
-#ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   /* Remove the value from the searchers list */
   int_list_remove(&list->st.searchers, list_ctx->value);
   mutex_release(&list->st.lock);
-#endif // NDEBUG
 
   /* Only the last searcher unlocks the no_searcher semaphore */
   if (list->searcher_count == 0) {
@@ -111,18 +106,16 @@ int llist_inserter_acquire(llist_ctx *list_ctx) {
   Hence, we simply wait until we can acquire the no_inserter sempahore.
   */
   llist *list = list_ctx->list;
-#ifndef NDEBUG
+
   mutex_acquire(&list->st.lock);
   list->st.inserters_waiting++;
   state_print(list);
   mutex_release(&list->st.lock);
-#endif // NDEBUG
 
   /* Since the deleter holds the no_inserter semaphore while it's active, we can
   use it as a way to find out if there is a deleter active */
   sem_acquire(&list->no_inserter);
 
-#ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.inserters = list_ctx->value;
   list->st.inserters_waiting--;
@@ -133,7 +126,6 @@ int llist_inserter_acquire(llist_ctx *list_ctx) {
   // assert(list->st.deleters == 0);
 
   mutex_release(&list->st.lock);
-#endif // NDEBUG
 
   return 0;
 }
@@ -143,7 +135,7 @@ int llist_inserter_release(llist *list) {
   Simply release the no_inserter semaphore, informing the deleters threads
   that they can run.
   */
-#ifndef NDEBUG
+
   mutex_acquire(&list->st.lock);
 
   /* Inserters may only run one at a time */
@@ -153,7 +145,6 @@ int llist_inserter_release(llist *list) {
 
   list->st.inserters = 0;
   mutex_release(&list->st.lock);
-#endif // NDEBUG
 
   /* Signal that there are currently no inserters */
   sem_release(&list->no_inserter);
@@ -169,18 +160,16 @@ int llist_deleter_acquire(llist_ctx *list_ctx) {
   acquire the no_searcher and no_inserter semaphores.
   */
   llist *list = list_ctx->list;
-  #ifndef NDEBUG
+
   mutex_acquire(&list->st.lock);
   list->st.deleters_waiting++;
   state_print(list);
   mutex_release(&list->st.lock);
-#endif // NDEBUG
 
   /* Wait until there are no searchers/inserters */
   sem_acquire(&list->no_searcher);
   sem_acquire(&list->no_inserter);
 
-#ifndef NDEBUG
   mutex_acquire(&list->st.lock);
   list->st.deleters_waiting--;
   list->st.deleters = list_ctx->value;
@@ -190,7 +179,6 @@ int llist_deleter_acquire(llist_ctx *list_ctx) {
   // assert(list->st.inserters == 0);
   state_print(list);
   mutex_release(&list->st.lock);
-#endif // NDEBUG
 
   return 0;
 }
@@ -201,7 +189,7 @@ int llist_deleter_release(llist *list) {
   Release both no_inserter and no_searcher semaphores, indicating that
   the deleters thread have finished.
   */
-#ifndef NDEBUG
+
   mutex_acquire(&list->st.lock);
   list->st.deleters = 0;
 
@@ -210,7 +198,6 @@ int llist_deleter_release(llist *list) {
   // assert(list->st.inserters == -1);
 
   mutex_release(&list->st.lock);
-#endif // NDEBUG
 
   /* Drop no_inserter and no_searchers semaphores */
   sem_release(&list->no_inserter);
@@ -234,7 +221,8 @@ void *searcher_thread(void *args) {
   llist_searcher_acquire(&ctx);
 
   // Here, I am sure the searcher thread is running
-  // Print the state showing that the searcher is currently searching for ctx->value
+  // Print the state showing that the searcher is currently searching for
+  // ctx->value
 
   sleep(3);
   void *result = llist_find(ctx.list, ctx.value);
@@ -244,8 +232,7 @@ void *searcher_thread(void *args) {
   printf("RESULT:\n");
   if (result == NULL) {
     printf("    The value %ld is not on the list.\n", ctx.value);
-  }
-  else {
+  } else {
     printf("    The value %ld was found on the list!\n", ctx.value);
   }
   mutex_release(&ctx.list->st.lock);
@@ -285,7 +272,7 @@ void *deleter_thread(void *args) {
   llist_ctx ctx = *(llist_ctx *)args;
 
   llist_deleter_acquire(&ctx);
-  
+
   // TODO what happens when we can't delete?
   sleep(3);
   int result = llist_delete(ctx.list, ctx.value);
@@ -294,9 +281,9 @@ void *deleter_thread(void *args) {
   state_print(ctx.list);
   printf("RESULT:\n");
   if (result == 0) {
-    printf("    The value %ld was not deleted because it is not in the list!\n", ctx.value);
-  }
-  else {
+    printf("    The value %ld was not deleted because it is not in the list!\n",
+           ctx.value);
+  } else {
     printf("    The value %ld was deleted!\n", ctx.value);
   }
   mutex_release(&ctx.list->st.lock);
