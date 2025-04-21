@@ -236,9 +236,9 @@ void *searcher_thread(void *args) {
   // Here, I am sure the searcher thread is running
   // Print the state showing that the searcher is currently searching for ctx->value
 
-  void *result = llist_find(ctx.list, ctx.value);
   sleep(3);
-  
+  void *result = llist_find(ctx.list, ctx.value);
+
   mutex_acquire(&ctx.list->st.lock);
   state_print(ctx.list);
   printf("RESULT:\n");
@@ -265,8 +265,8 @@ void *inserter_thread(void *args) {
 
   llist_inserter_acquire(&ctx);
 
-  llist_push_back(ctx.list, ctx.value);
   sleep(3);
+  llist_push_back(ctx.list, ctx.value);
 
   mutex_acquire(&ctx.list->st.lock);
   state_print(ctx.list);
@@ -285,10 +285,10 @@ void *deleter_thread(void *args) {
   llist_ctx ctx = *(llist_ctx *)args;
 
   llist_deleter_acquire(&ctx);
-
+  
   // TODO what happens when we can't delete?
-  int result = llist_delete(ctx.list, ctx.value);
   sleep(3);
+  int result = llist_delete(ctx.list, ctx.value);
 
   mutex_acquire(&ctx.list->st.lock);
   state_print(ctx.list);
