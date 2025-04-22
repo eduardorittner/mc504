@@ -124,15 +124,15 @@ RESULT:
 ## Code organization
 
 These are the main code files:
-* sync.c (.h): Wrappers around sem_* functions and pthread_mutex_* functions
+* `sync.c (.h)`: Wrappers around sem_* functions and pthread_mutex_* functions
 for more cohesive naming (acquire/release) and error detection. On error they
 print to stderr and exit the thread.
-* linked-list.c (.h): Linked list data structure and associated functions. The
+* `linked-list.c (.h)`: Linked list data structure and associated functions. The
 find, delete and push_back functions are defined and implemented here.
-* workers.c (.h): Worker thread functions (those which are passed to
+* `workers.c (.h)`: Worker thread functions (those which are passed to
 pthread_create), as well as worker-specific acquire/release function pairs. It also includes the state print function.
-* sched.c (.h): Logic for orchestrating runs by creating an initial list and then
+* `sched.c (.h)`: Logic for orchestrating runs by creating an initial list and then
 starting searchers, inserters and deleters at random, in hopes of testing more of
 the problem state. The total number of searchers, inserters, deleters and
 initial list size are all parameters which can be changed.
-* int-list.c (.h): Implements an integer list used for debug purposes to know which values are being searched at a given time.
+* `int-list.c (.h)`: Implements an integer list used for debug purposes to know which values are being searched at a given time.
