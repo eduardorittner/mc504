@@ -37,7 +37,7 @@ In order to solve the problem, we implemented a linked list and its operations:
 find, push_back and delete. These functions are simple and don't concern
 themselves with any synchronization, which must be handled by their callers.
 
-In order to simplify the implementation, we have considered that the linked list is composed only by positive integers.
+In order to simplify the implementation, we have considered that the linked list is composed only by positive integers. By default, the list is initialized with 10 random elements ranging from 1 to 20, and the program will create 5 threads of each type (searchers, inserters and deleters). To adjust the project for different list sizes, thread counts, or value ranges, simply modify the constants `INITIAL_SIZE`, `SEARCHERS`, `INSERTERS`, `DELETERS` and `RANDOM_UPPER_BOUND` in the `main.c` file.
 
 For synchronization, we use mutexes, semaphores and atomic integers. Our
 linked-list definition is:
