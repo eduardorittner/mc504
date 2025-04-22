@@ -145,3 +145,10 @@ The `sync_suite` has more interesting tests, where we create a list, have a
 worker acquire it, and then assert that the problem invariant still holds. For example,
 in the `concurrent_inserters` test, we acquire the list with an `inserter`, and then
 try to acquire the list with another `inserter`, asserting that the operation fails.
+||||||| parent of 59bd8a4 (readme: hard-wrap lines to 80 characters)
+pthread_create), as well as worker-specific acquire/release function pairs. It also includes the state print function.
+* `sched.c (.h)`: Logic for orchestrating runs by creating an initial list and then
+starting searchers, inserters and deleters at random, in hopes of testing more of
+the problem state. The total number of searchers, inserters, deleters and
+initial list size are all parameters which can be changed.
+* `int-list.c (.h)`: Implements an integer list used for debug purposes to know which values are being searched at a given time.
