@@ -1,3 +1,4 @@
+#include "../src/int-list.h"
 #include "../src/linked-list.h"
 #include "../src/workers.h"
 #include "greatest.h"
@@ -48,7 +49,7 @@ TEST insert_simple(void) {
 
 TEST delete_empty_list(void) {
   llist *list = llist_new();
-  ASSERT_LT(llist_delete(list, 1), 0);
+  ASSERT_EQ(llist_delete(list, 1), 0);
   llist_free(list);
   PASS();
 }
@@ -84,7 +85,7 @@ TEST find_simple(void) {
   PASS();
 }
 
-SUITE(main_suite) {
+SUITE(llist_suite) {
   RUN_TEST(create_empty_list);
   RUN_TEST(insert_simple);
   RUN_TEST(delete_empty_list);
@@ -111,7 +112,7 @@ TEST concurrent_inserters(void) {
   pthread_t thread;
   llist_ctx ctx = {list, 0};
 
-  llist_inserter_acquire(list);
+  llist_inserter_acquire(&ctx);
 
   pthread_create(&thread, NULL, inserter_acquire, &ctx);
   int *result;
@@ -143,7 +144,7 @@ TEST concurrent_deleters(void) {
   llist *list = llist_new();
   pthread_t thread;
   llist_ctx ctx = {list, 0};
-  llist_inserter_acquire(list);
+  llist_inserter_acquire(&ctx);
 
   pthread_create(&thread, NULL, deleter_acquire, &ctx);
   int *result;
@@ -165,7 +166,7 @@ TEST inserters_and_deleters(void) {
   llist_ctx ctx = {list, 0};
   int *result;
 
-  llist_inserter_acquire(list);
+  llist_inserter_acquire(&ctx);
   pthread_create(&thread, NULL, deleter_acquire, &ctx);
   pthread_join(thread, (void **)&result);
   llist_inserter_release(list);
@@ -173,7 +174,7 @@ TEST inserters_and_deleters(void) {
   /* If the no_inserter semaphore was locked, errno should be EAGAIN */
   ASSERT_EQ_FMT(EAGAIN, *result, "%d\n");
 
-  llist_deleter_acquire(list);
+  llist_deleter_acquire(&ctx);
   pthread_create(&thread, NULL, inserter_acquire, &ctx);
   pthread_join(thread, (void **)&result);
   llist_deleter_release(list);
@@ -191,14 +192,14 @@ TEST inserters_and_searchers(void) {
   llist_ctx ctx = {list, 0};
   int *result;
 
-  llist_searcher_acquire(list);
+  llist_searcher_acquire(&ctx);
 
   pthread_create(&thread, NULL, inserter_acquire, &ctx);
   pthread_join(thread, (void **)&result);
 
   ASSERT_EQ_FMT(0, *result, "%d");
 
-  llist_searcher_release(list);
+  llist_searcher_release(&ctx);
 
   PASS();
 }
@@ -209,26 +210,70 @@ TEST deleters_and_searchers(void) {
   llist_ctx ctx = {list, 0};
   int *result;
 
-  llist_searcher_acquire(list);
+  llist_searcher_acquire(&ctx);
 
   pthread_create(&thread, NULL, deleter_acquire, &ctx);
   pthread_join(thread, (void **)&result);
 
   ASSERT_EQ_FMT(EAGAIN, *result, "%d");
 
-  llist_searcher_release(list);
+  llist_searcher_release(&ctx);
 
   llist_free(list);
 
   PASS();
 }
 
-SUITE(sync) {
+// A test that creates a list, inserts ten random values and
+// then deletes those same ten random values. This checks
+// that inserters and deleters always run one at a time, as
+// well as checking that the list is empty after everyone is
+// done
+TEST insert_then_delete(void) {
+  llist *list = llist_new();
+  pthread_t threads[10];
+  llist_ctx ctx[10];
+  int *result;
+  int values[10];
+
+  // Initialize values with random values
+  for (int i = 0; i < 10; i++) {
+    values[i] = rand();
+    ctx[i] = (llist_ctx){.list = list, .value = values[i]};
+    pthread_create(&threads[i], NULL, inserter_thread, (void *)&ctx[i]);
+  }
+
+  // Wait for all inserters to finish
+  for (int i = 0; i < 10; i++) {
+    pthread_join(threads[i], NULL);
+  }
+
+  // Create all deleters
+  for (int i = 0; i < 10; i++) {
+    pthread_create(&threads[i], NULL, deleter_thread, (void *)&ctx[i]);
+  }
+
+  // Wait for all deleters to finish, confirming that every one deleted a value
+  for (int i = 0; i < 10; i++) {
+    pthread_join(threads[i], (void **)&result);
+    ASSERT_EQ(*result, 1);
+  }
+
+  // Assert that the list is null
+  ASSERT_EQ(list->head, NULL);
+
+  llist_free(list);
+
+  PASS();
+}
+
+SUITE(sync_suite) {
   RUN_TEST(concurrent_inserters);
   RUN_TEST(concurrent_deleters);
   RUN_TEST(inserters_and_deleters);
   RUN_TEST(inserters_and_searchers);
   RUN_TEST(deleters_and_searchers);
+  RUN_TEST(insert_then_delete);
 }
 
 /* Add definitions that need to be in the test runner's main file. */
@@ -237,8 +282,8 @@ GREATEST_MAIN_DEFS();
 int main(int argc, char **argv) {
   GREATEST_MAIN_BEGIN(); /* command-line options, initialization. */
 
-  RUN_SUITE(main_suite);
-  RUN_SUITE(sync);
+  RUN_SUITE(llist_suite);
+  RUN_SUITE(sync_suite);
 
   GREATEST_MAIN_END(); /* display results */
 }
