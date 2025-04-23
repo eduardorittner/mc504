@@ -1,3 +1,4 @@
+#include "../src/int-list.h"
 #include "../src/linked-list.h"
 #include "../src/workers.h"
 #include "greatest.h"
@@ -48,7 +49,7 @@ TEST insert_simple(void) {
 
 TEST delete_empty_list(void) {
   llist *list = llist_new();
-  ASSERT_LT(llist_delete(list, 1), 0);
+  ASSERT_EQ(llist_delete(list, 1), 0);
   llist_free(list);
   PASS();
 }
@@ -111,7 +112,7 @@ TEST concurrent_inserters(void) {
   pthread_t thread;
   llist_ctx ctx = {list, 0};
 
-  llist_inserter_acquire(list);
+  llist_inserter_acquire(&ctx);
 
   pthread_create(&thread, NULL, inserter_acquire, &ctx);
   int *result;
@@ -143,7 +144,7 @@ TEST concurrent_deleters(void) {
   llist *list = llist_new();
   pthread_t thread;
   llist_ctx ctx = {list, 0};
-  llist_inserter_acquire(list);
+  llist_inserter_acquire(&ctx);
 
   pthread_create(&thread, NULL, deleter_acquire, &ctx);
   int *result;
@@ -165,7 +166,7 @@ TEST inserters_and_deleters(void) {
   llist_ctx ctx = {list, 0};
   int *result;
 
-  llist_inserter_acquire(list);
+  llist_inserter_acquire(&ctx);
   pthread_create(&thread, NULL, deleter_acquire, &ctx);
   pthread_join(thread, (void **)&result);
   llist_inserter_release(list);
@@ -173,7 +174,7 @@ TEST inserters_and_deleters(void) {
   /* If the no_inserter semaphore was locked, errno should be EAGAIN */
   ASSERT_EQ_FMT(EAGAIN, *result, "%d\n");
 
-  llist_deleter_acquire(list);
+  llist_deleter_acquire(&ctx);
   pthread_create(&thread, NULL, inserter_acquire, &ctx);
   pthread_join(thread, (void **)&result);
   llist_deleter_release(list);
@@ -191,14 +192,14 @@ TEST inserters_and_searchers(void) {
   llist_ctx ctx = {list, 0};
   int *result;
 
-  llist_searcher_acquire(list);
+  llist_searcher_acquire(&ctx);
 
   pthread_create(&thread, NULL, inserter_acquire, &ctx);
   pthread_join(thread, (void **)&result);
 
   ASSERT_EQ_FMT(0, *result, "%d");
 
-  llist_searcher_release(list);
+  llist_searcher_release(&ctx);
 
   PASS();
 }
@@ -209,14 +210,14 @@ TEST deleters_and_searchers(void) {
   llist_ctx ctx = {list, 0};
   int *result;
 
-  llist_searcher_acquire(list);
+  llist_searcher_acquire(&ctx);
 
   pthread_create(&thread, NULL, deleter_acquire, &ctx);
   pthread_join(thread, (void **)&result);
 
   ASSERT_EQ_FMT(EAGAIN, *result, "%d");
 
-  llist_searcher_release(list);
+  llist_searcher_release(&ctx);
 
   llist_free(list);
 
