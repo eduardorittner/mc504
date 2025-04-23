@@ -224,12 +224,56 @@ TEST deleters_and_searchers(void) {
   PASS();
 }
 
+// A test that creates a list, inserts ten random values and
+// then deletes those same ten random values. This checks
+// that inserters and deleters always run one at a time, as
+// well as checking that the list is empty after everyone is
+// done
+TEST insert_then_delete(void) {
+  llist *list = llist_new();
+  pthread_t threads[10];
+  llist_ctx ctx[10];
+  int *result;
+  int values[10];
+
+  // Initialize values with random values
+  for (int i = 0; i < 10; i++) {
+    values[i] = rand();
+    ctx[i] = (llist_ctx){.list = list, .value = values[i]};
+    pthread_create(&threads[i], NULL, inserter_thread, (void *)&ctx[i]);
+  }
+
+  // Wait for all inserters to finish
+  for (int i = 0; i < 10; i++) {
+    pthread_join(threads[i], NULL);
+  }
+
+  // Create all deleters
+  for (int i = 0; i < 10; i++) {
+    pthread_create(&threads[i], NULL, deleter_thread, (void *)&ctx[i]);
+  }
+
+  // Wait for all deleters to finish, confirming that every one deleted a value
+  for (int i = 0; i < 10; i++) {
+    pthread_join(threads[i], (void **)&result);
+    ASSERT_EQ(*result, 1);
+  }
+
+  // Assert that the list is null
+  ASSERT_EQ(list->head, NULL);
+
+  llist_free(list);
+
+  PASS();
+}
+
 SUITE(sync_suite) {
   RUN_TEST(concurrent_inserters);
   RUN_TEST(concurrent_deleters);
   RUN_TEST(inserters_and_deleters);
   RUN_TEST(inserters_and_searchers);
   RUN_TEST(deleters_and_searchers);
+  RUN_TEST(insert_then_delete);
 }
 
 /* Add definitions that need to be in the test runner's main file. */
