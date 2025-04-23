@@ -25,7 +25,9 @@ searcher, inserters and deleters such that:
 
 To compile this project run `make` on the repo's root, and the compiled binary
 will be saved in `build/main`. To compile and immediately run, one can use
-`make run`.
+`make run`. To compile and run tests, run `make test`. If you wish to compile
+tests without running them, `cd` into `test` and run `make`, the test binary
+will be stored in `test/build/test`
 
 The default compiler is gcc, to use a different compiler, change the `CC`
 variable in the Makefile to be whatever you want. This project has been tested
@@ -130,3 +132,16 @@ more of the problem state. The total number of searchers, inserters, deleters
 and initial list size are all parameters which can be changed.
 * `int-list.c (.h)`: Implements an integer list used for debug purposes to know
 which values are being searched at a given time.
+
+## Tests
+
+Tests are stored in the `test` directory, we use the [Greatest C testing
+framework](https://github.com/silentbicycle/greatest) for running our tests.
+
+Tests are divided into two suites: `llist_suite` and `sync_suite`. The
+`llist_suite` contains basic sanity checks that our linked list implementation
+works as intented, they do not exercise any synchronization/parallel codepaths.
+The `sync_suite` has more interesting tests, where we create a list, have a
+worker acquire it, and then assert that the problem invariant still holds. For example,
+in the `concurrent_inserters` test, we acquire the list with an `inserter`, and then
+try to acquire the list with another `inserter`, asserting that the operation fails.
