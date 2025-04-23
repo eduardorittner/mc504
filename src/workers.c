@@ -275,7 +275,8 @@ void *deleter_thread(void *args) {
 
   // TODO what happens when we can't delete?
   sleep(3);
-  int result = llist_delete(ctx.list, ctx.value);
+  int *result = malloc(sizeof(*result));
+  *result = llist_delete(ctx.list, ctx.value);
 
   mutex_acquire(&ctx.list->st.lock);
   state_print(ctx.list);
@@ -290,5 +291,5 @@ void *deleter_thread(void *args) {
 
   llist_deleter_release(ctx.list);
 
-  return NULL;
+  return result;
 }
