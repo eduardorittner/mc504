@@ -85,7 +85,7 @@ TEST find_simple(void) {
   PASS();
 }
 
-SUITE(main_suite) {
+SUITE(llist_suite) {
   RUN_TEST(create_empty_list);
   RUN_TEST(insert_simple);
   RUN_TEST(delete_empty_list);
@@ -224,7 +224,7 @@ TEST deleters_and_searchers(void) {
   PASS();
 }
 
-SUITE(sync) {
+SUITE(sync_suite) {
   RUN_TEST(concurrent_inserters);
   RUN_TEST(concurrent_deleters);
   RUN_TEST(inserters_and_deleters);
@@ -238,8 +238,8 @@ GREATEST_MAIN_DEFS();
 int main(int argc, char **argv) {
   GREATEST_MAIN_BEGIN(); /* command-line options, initialization. */
 
-  RUN_SUITE(main_suite);
-  RUN_SUITE(sync);
+  RUN_SUITE(llist_suite);
+  RUN_SUITE(sync_suite);
 
   GREATEST_MAIN_END(); /* display results */
 }
