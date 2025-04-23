@@ -26,5 +26,5 @@ typedef struct {
   worker_queue deleters;
 } run_cfg;
 
-run_cfg run_cfg_new(size_t init, size_t s, size_t i, size_t d);
-void run_cfg_run(run_cfg* cfg);
+run_cfg run_cfg_new(size_t init, size_t s, size_t i, size_t d, size_t random_upper_bound);
+void run_cfg_run(run_cfg* cfg, size_t random_upper_bound);
