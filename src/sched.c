@@ -47,7 +47,8 @@ llist *llist_random(size_t size, size_t random_upper_bound) {
   return list;
 }
 
-run_cfg run_cfg_new(size_t init, size_t s, size_t i, size_t d, size_t random_upper_bound) {
+run_cfg run_cfg_new(size_t init, size_t s, size_t i, size_t d,
+                    size_t random_upper_bound) {
   llist *list = llist_random(init, random_upper_bound);
   run_cfg cfg = {0};
   cfg.initial_size = init;
@@ -61,8 +62,16 @@ run_cfg run_cfg_new(size_t init, size_t s, size_t i, size_t d, size_t random_upp
 void run_cfg_run(run_cfg *cfg, size_t random_upper_bound) {
   int choice;
   while (cfg->searchers.len < cfg->searchers.cap ||
-        cfg->inserters.len < cfg->inserters.cap ||
-        cfg->deleters.len < cfg->deleters.cap) {
+         cfg->inserters.len < cfg->inserters.cap ||
+         cfg->deleters.len < cfg->deleters.cap) {
+
+#if __has_attribute(__fallthrough__)
+#define fallthrough __attribute__((__fallthrough__))
+#else
+#define fallthrough                                                            \
+  do {                                                                         \
+  } while (0) /* fallthrough */
+#endif
 
   random_choice:
     choice = rand() % 3;
@@ -72,11 +81,13 @@ void run_cfg_run(run_cfg *cfg, size_t random_upper_bound) {
         worker_queue_append_random(&cfg->searchers, random_upper_bound);
         break;
       }
+      fallthrough;
     case 1:
       if (cfg->inserters.len < cfg->inserters.cap) {
         worker_queue_append_random(&cfg->inserters, random_upper_bound);
         break;
       }
+      fallthrough;
     case 2:
       if (cfg->deleters.len < cfg->deleters.cap) {
         worker_queue_append_random(&cfg->deleters, random_upper_bound);
