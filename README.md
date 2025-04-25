@@ -50,8 +50,15 @@ constants `INITIAL_SIZE`, `SEARCHERS`, `INSERTERS`, `DELETERS` and
 For synchronization, we use mutexes, semaphores and atomic integers. Our
 linked-list definition is:
 
-```c typedef struct { lnode* head; sem_t no_searcher; sem_t no_inserter;
-pthread_mutex_t searcher_mutex; atomic_int searcher_count; state st; } llist;
+```c
+typedef struct {
+    lnode* head;
+    sem_t no_searcher;
+    sem_t no_inserter;
+    pthread_mutex_t searcher_mutex;
+    atomic_int searcher_count;
+    state st;
+} llist;
 ```
 
 `head` points to the first node of the linked list, and `state` is a struct
@@ -78,9 +85,17 @@ they're already locked.
 
 The `state` struct definition is shown below.
 
-```c typedef struct { int_list searchers; atomic_int searchers_waiting; size_t
-inserters; atomic_int inserters_waiting; size_t deleters; atomic_int
-deleters_waiting; pthread_mutex_t lock; } state; ```
+```c
+typedef struct {
+    int_list searchers;
+    atomic_int searchers_waiting;
+    size_t inserters;
+    atomic_int inserters_waiting;
+    size_t deleters;
+    atomic_int deleters_waiting;
+    pthread_mutex_t lock; }
+state;
+```
 
 `searchers` is a list of integers representing the values being searched by the
 searcher threads. Its size informs the number of active searcher threads - an
@@ -107,13 +122,15 @@ Given all these information, our program constantly prints the project state
 while running. This is implemented by the `state_print` function defined within
 `workers.c`, and has the following pattern:
 
-``` [LINKED-LIST] STATUS: [Searching, Inserting, Deleting] {value} WAITING
+```
+[LINKED-LIST] STATUS: [Searching, Inserting, Deleting] {value} WAITING
 QUEUE: Searchers waiting: {number_of_searchers_waiting} Inserters waiting:
 {number_of_inserters_waiting} Deleters waiting: {number_of_deleters_waiting}
 [If a thread finished at the current time] RESULT: [search] The value {value}
 is not on the list; or The value {value} was found on the list; [insert] The
 value {value} was inserted! [delete] The value {value} was not deleted because
-it is not in the list; or The value {value} was deleted! ```
+it is not in the list; or The value {value} was deleted!
+```
 
 ## Code organization
 
