@@ -123,13 +123,23 @@ while running. This is implemented by the `state_print` function defined within
 `workers.c`, and has the following pattern:
 
 ```
-[LINKED-LIST] STATUS: [Searching, Inserting, Deleting] {value} WAITING
-QUEUE: Searchers waiting: {number_of_searchers_waiting} Inserters waiting:
-{number_of_inserters_waiting} Deleters waiting: {number_of_deleters_waiting}
-[If a thread finished at the current time] RESULT: [search] The value {value}
-is not on the list; or The value {value} was found on the list; [insert] The
-value {value} was inserted! [delete] The value {value} was not deleted because
-it is not in the list; or The value {value} was deleted!
+[LINKED-LIST]
+STATUS:
+    [Searching, Inserting, Deleting] {value}
+WAITING QUEUE:
+    Searchers waiting: {number_of_searchers_waiting}
+    Inserters waiting: {number_of_inserters_waiting}
+    Deleters waiting: {number_of_deleters_waiting}
+[If a thread finished at the current time]
+RESULT:
+    [search]
+        The value {value} is not on the list; or
+        The value {value} was found on the list;
+    [insert]
+        The value {value} was inserted!
+    [delete]
+        The value {value} was not deleted because it is not in the list; or
+        The value {value} was deleted!
 ```
 
 ## Code organization
@@ -152,20 +162,13 @@ which values are being searched at a given time.
 
 ## Tests
 
-Tests are stored in the `test` directory, we use the [Greatest C testing
+Tests are stored in the `test` directory, and we use the [Greatest C testing
 framework](https://github.com/silentbicycle/greatest) for running our tests.
 
 Tests are divided into two suites: `llist_suite` and `sync_suite`. The
 `llist_suite` contains basic sanity checks that our linked list implementation
-works as intented, they do not exercise any synchronization/parallel codepaths.
+works as intented, but they do not exercise any synchronization/parallel codepaths.
 The `sync_suite` has more interesting tests, where we create a list, have a
 worker acquire it, and then assert that the problem invariant still holds. For example,
 in the `concurrent_inserters` test, we acquire the list with an `inserter`, and then
 try to acquire the list with another `inserter`, asserting that the operation fails.
-||||||| parent of 59bd8a4 (readme: hard-wrap lines to 80 characters)
-pthread_create), as well as worker-specific acquire/release function pairs. It also includes the state print function.
-* `sched.c (.h)`: Logic for orchestrating runs by creating an initial list and then
-starting searchers, inserters and deleters at random, in hopes of testing more of
-the problem state. The total number of searchers, inserters, deleters and
-initial list size are all parameters which can be changed.
-* `int-list.c (.h)`: Implements an integer list used for debug purposes to know which values are being searched at a given time.
